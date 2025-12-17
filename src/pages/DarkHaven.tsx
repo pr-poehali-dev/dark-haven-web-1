@@ -9,7 +9,7 @@ import AdminPanel from '@/components/AdminPanel';
 
 function DarkHaven() {
   const [activeTab, setActiveTab] = useState('главная');
-  const [serverOnline] = useState(42);
+  const [serverStatus, setServerStatus] = useState<{ online: boolean; players: number; maxPlayers: number } | null>(null);
   const [showCaptcha, setShowCaptcha] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
@@ -45,6 +45,28 @@ function DarkHaven() {
     if (captchaPassed === 'true') {
       setShowCaptcha(false);
     }
+  }, []);
+
+  useEffect(() => {
+    const fetchServerStatus = async () => {
+      try {
+        const response = await fetch('https://functions.poehali.dev/3f5f9e2b-943e-4980-ae29-ef7254c8b860');
+        const data = await response.json();
+        setServerStatus({
+          online: data.online,
+          players: data.players,
+          maxPlayers: data.maxPlayers
+        });
+      } catch (error) {
+        console.error('Failed to fetch server status:', error);
+        setServerStatus({ online: false, players: 0, maxPlayers: 128 });
+      }
+    };
+
+    fetchServerStatus();
+    const interval = setInterval(fetchServerStatus, 30000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const handleCaptchaSuccess = () => {
@@ -153,7 +175,7 @@ function DarkHaven() {
             <div className="container relative px-4 py-24 text-center">
               <Badge className="mb-4 bg-primary/20 text-primary border-primary">
                 <Icon name="Zap" className="mr-1 h-3 w-3" />
-                Онлайн: {serverOnline} игроков
+                Онлайн: {serverStatus?.players || 0} игроков
               </Badge>
               <h2 className="mb-6 text-5xl md:text-7xl font-black text-primary text-shadow-glow animate-fade-in">
                 DARK HAVEN
@@ -375,10 +397,17 @@ function DarkHaven() {
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                   <span>Статус сервера</span>
-                  <Badge className="bg-green-500/20 text-green-400 border-green-500">
-                    <div className="mr-2 h-2 w-2 rounded-full bg-green-400 animate-pulse" />
-                    Онлайн
-                  </Badge>
+                  {serverStatus?.online ? (
+                    <Badge className="bg-green-500/20 text-green-400 border-green-500">
+                      <div className="mr-2 h-2 w-2 rounded-full bg-green-400 animate-pulse" />
+                      Онлайн
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-red-500/20 text-red-400 border-red-500">
+                      <div className="mr-2 h-2 w-2 rounded-full bg-red-400" />
+                      Оффлайн
+                    </Badge>
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -388,11 +417,11 @@ function DarkHaven() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Игроков онлайн:</span>
-                  <span className="text-2xl font-bold text-primary">{serverOnline}</span>
+                  <span className="text-2xl font-bold text-primary">{serverStatus?.players || 0}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Максимум игроков:</span>
-                  <span className="font-semibold">128</span>
+                  <span className="font-semibold">{serverStatus?.maxPlayers || 128}</span>
                 </div>
               </CardContent>
             </Card>

@@ -1,0 +1,21 @@
+{
+  "tests": [
+    {
+      "name": "Check server status returns valid data",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "ip": "95.31.51.216:1212",
+        "maxPlayers": 128
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Handle OPTIONS for CORS",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    }
+  ]
+}
