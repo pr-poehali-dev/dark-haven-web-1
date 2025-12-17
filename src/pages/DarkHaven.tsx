@@ -1,14 +1,22 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
+import WireCaptcha from '@/components/WireCaptcha';
+import AuthDialog from '@/components/AuthDialog';
+import AdminPanel from '@/components/AdminPanel';
 
 function DarkHaven() {
   const [activeTab, setActiveTab] = useState('главная');
   const [serverOnline] = useState(42);
+  const [showCaptcha, setShowCaptcha] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const [user, setUser] = useState<{ username: string; isAdmin: boolean } | null>(null);
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
 
-  const newsItems = [
+  const [newsItems, setNewsItems] = useState([
     {
       id: 1,
       title: 'Запуск нового сервера Dark Haven',
@@ -32,7 +40,46 @@ function DarkHaven() {
     }
   ];
 
-  const rules = [
+  useEffect(() => {
+    const captchaPassed = localStorage.getItem('captchaPassed');
+    if (captchaPassed === 'true') {
+      setShowCaptcha(false);
+    }
+  }, []);
+
+  const handleCaptchaSuccess = () => {
+    localStorage.setItem('captchaPassed', 'true');
+    setShowCaptcha(false);
+  };
+
+  const handleLogin = (username: string, isAdmin: boolean) => {
+    setUser({ username, isAdmin });
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    setIsAuthenticated(false);
+    setShowAdminPanel(false);
+  };
+
+  const handleAddNews = (news: { title: string; content: string; tag: string; date: string }) => {
+    const newItem = {
+      id: newsItems.length + 1,
+      ...news
+    };
+    setNewsItems([newItem, ...newsItems]);
+  };
+
+  const handleAddRule = (rule: { title: string; text: string }) => {
+    const newRule = {
+      id: rules.length + 1,
+      ...rule
+    };
+    setRules([...rules, newRule]);
+  };
+
+  const [rules, setRules] = useState([
     { id: 1, title: 'Уважение к игрокам', text: 'Не оскорбляйте других игроков, не используйте нецензурную лексику.' },
     { id: 2, title: 'Ролевая игра', text: 'Следуйте своей роли, не мешайте другим игрокам играть.' },
     { id: 3, title: 'Метагейминг запрещён', text: 'Не используйте внешнюю информацию в игре.' },
@@ -68,10 +115,32 @@ function DarkHaven() {
               </button>
             ))}
           </nav>
-          <Button size="sm" className="bg-secondary hover:bg-secondary/80">
-            <Icon name="LogIn" className="mr-2 h-4 w-4" />
-            Войти
-          </Button>
+          {isAuthenticated ? (
+            <div className="flex items-center gap-4">
+              {user?.isAdmin && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowAdminPanel(true)}
+                  className="border-accent text-accent"
+                >
+                  <Icon name="Settings" className="mr-2 h-4 w-4" />
+                  Админ-панель
+                </Button>
+              )}
+              <div className="flex items-center gap-2">
+                <Badge className="bg-primary/20 text-primary">{user?.username}</Badge>
+                <Button size="sm" variant="ghost" onClick={handleLogout}>
+                  <Icon name="LogOut" className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <Button size="sm" className="bg-secondary hover:bg-secondary/80" onClick={() => setShowAuthDialog(true)}>
+              <Icon name="LogIn" className="mr-2 h-4 w-4" />
+              Войти
+            </Button>
+          )}
         </div>
       </header>
 
@@ -413,22 +482,63 @@ function DarkHaven() {
       )}
 
       {/* Chat Tab */}
-      {activeTab === 'чат' && (
+{activeTab === 'чат' && (
         <section className="container px-4 py-16">
           <h2 className="mb-8 text-4xl font-bold text-center">Общий чат</h2>
           <div className="mx-auto max-w-4xl">
-            <Card className="cyber-border bg-card/50 backdrop-blur">
-              <CardContent className="p-6 text-center">
-                <Icon name="MessageSquare" className="mx-auto mb-4 h-16 w-16 text-primary" />
-                <p className="text-muted-foreground mb-4">
-                  Публичный чат будет доступен после авторизации
-                </p>
-                <Button className="bg-primary hover:bg-primary/90">
-                  <Icon name="LogIn" className="mr-2 h-4 w-4" />
-                  Войти для доступа к чату
-                </Button>
-              </CardContent>
-            </Card>
+            {isAuthenticated ? (
+              <Card className="cyber-border bg-card/50 backdrop-blur">
+                <CardHeader>
+                  <CardTitle>Чат сообщества</CardTitle>
+                  <CardDescription>Общайтесь с другими игроками</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="h-96 overflow-y-auto border border-border rounded-lg p-4 bg-background/30">
+                      <div className="space-y-3">
+                        <div className="flex items-start gap-3">
+                          <Badge className="bg-primary/20 text-primary">Admin</Badge>
+                          <div>
+                            <p className="text-sm">Добро пожаловать в чат Dark Haven!</p>
+                            <span className="text-xs text-muted-foreground">10:30</span>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-3">
+                          <Badge className="bg-secondary/20 text-secondary">{user?.username}</Badge>
+                          <div>
+                            <p className="text-sm">Привет всем!</p>
+                            <span className="text-xs text-muted-foreground">10:32</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Введите сообщение..."
+                        className="flex-1 h-10 px-3 rounded-md border border-input bg-background"
+                      />
+                      <Button className="bg-primary hover:bg-primary/90">
+                        <Icon name="Send" className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="cyber-border bg-card/50 backdrop-blur">
+                <CardContent className="p-6 text-center">
+                  <Icon name="MessageSquare" className="mx-auto mb-4 h-16 w-16 text-primary" />
+                  <p className="text-muted-foreground mb-4">
+                    Публичный чат доступен после авторизации
+                  </p>
+                  <Button className="bg-primary hover:bg-primary/90" onClick={() => setShowAuthDialog(true)}>
+                    <Icon name="LogIn" className="mr-2 h-4 w-4" />
+                    Войти для доступа к чату
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </section>
       )}
@@ -487,6 +597,24 @@ function DarkHaven() {
           </div>
         </div>
       </footer>
+
+      {/* Captcha */}
+      {showCaptcha && <WireCaptcha onSuccess={handleCaptchaSuccess} />}
+
+      {/* Auth Dialog */}
+      <AuthDialog
+        open={showAuthDialog}
+        onOpenChange={setShowAuthDialog}
+        onLogin={handleLogin}
+      />
+
+      {/* Admin Panel */}
+      <AdminPanel
+        open={showAdminPanel}
+        onClose={() => setShowAdminPanel(false)}
+        onAddNews={handleAddNews}
+        onAddRule={handleAddRule}
+      />
     </div>
   );
 }
