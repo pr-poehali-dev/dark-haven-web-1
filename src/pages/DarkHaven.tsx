@@ -38,7 +38,7 @@ function DarkHaven() {
       content: 'Возвращение классических антагонистов: воры, агенты синдиката, ядерные оперативники, ниндзя и многое другое!',
       tag: 'Контент'
     }
-  ];
+  ]);
 
   useEffect(() => {
     const captchaPassed = localStorage.getItem('captchaPassed');
